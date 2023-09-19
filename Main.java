@@ -68,7 +68,7 @@ class Main {
             rightOperand = Integer.parseInt(arabicMatcher.group(3));
             operator = arabicMatcher.group(2);
         }
-        if (leftOperand > 10 || rightOperand > 10)
+        if (leftOperand > 10 || rightOperand > 10 || leftOperand == 0 || rightOperand == 0)
             throw new Exception("Incorrect number(s) in the operands");
 	Expression expression = new Expression(leftOperand, rightOperand, operator, isRoman);
         return expression;
