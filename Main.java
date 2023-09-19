@@ -6,75 +6,71 @@ import java.util.regex.Pattern;
 
 class Main {
     public static void main(String[] args) throws Exception {
-        String output_result;
+        String outputResult;
         System.out.println("Enter an expression with two operands:");
         Scanner in = new Scanner(System.in);
         String s = in.nextLine().strip();
 	try{
-        	Map<String, Object> expression = Main.parseExpression(s);
-        	boolean isRoman = (boolean) expression.get("isRoman");
+        	Expression expression = Main.parseExpression(s);
+        	boolean isRoman = expression.getIsRoman();
         	int result = Main.calculate(expression);
         	if (isRoman)
-            		output_result = Main.arabicToRoman(result);
-        	else output_result = String.valueOf(result);
+            		outputResult = Main.arabicToRoman(result);
+        	else outputResult = String.valueOf(result);
 	}
 	catch (Exception e){
 		System.out.println(e.getMessage());
 		return;
 	}
-        System.out.println("Result: " + output_result);
+        System.out.println("Result: " + outputResult);
     }
 
-    public static int calculate(Map expression){
+    public static int calculate(Expression expression){
         int result = 0;
-        int left_operand = (int) expression.get("left_operand");
-        int right_operand = (int) expression.get("right_operand");
-        String operator = (String) expression.get("operator");
+        int leftOperand = expression.getLeftOperand();
+        int rightOperand = expression.getRightOperand();
+        String operator = expression.getOperator();
         switch (operator) {
             case "+":
-                result = left_operand + right_operand;
+                result = leftOperand + rightOperand;
                 break;
             case "-":
-                result = left_operand - right_operand;
+                result = leftOperand - rightOperand;
                 break;
             case "*":
-                result = left_operand * right_operand;
+                result = leftOperand * rightOperand;
                 break;
             case "/":
-                result = left_operand / right_operand;
+                result = leftOperand / rightOperand;
         }
         return result;
     }
-    public static Map<String, Object> parseExpression(String s) throws Exception {
+    public static Expression parseExpression(String s) throws Exception {
         String operator;
-        int left_operand;
-        int right_operand;
-        String arabic_regex = "^([0-9]{1,2})\\s*([*+/-])\\s*([0-9]{1,2})$";
-        String roman_regex = "^(XI?|(?:IX|IV|V?I{0,3}))\\s*([*+/-])\\s*(XI?|(?:IX|IV|V?I{0,3}))$";
-        Pattern arabic_pattern = Pattern.compile(arabic_regex);
-        Pattern roman_pattern = Pattern.compile(roman_regex);
-        Matcher arabic_matcher = arabic_pattern.matcher(s);
-        Matcher roman_matcher = roman_pattern.matcher(s);
-        boolean isArabic = arabic_matcher.matches();
-        boolean isRoman = roman_matcher.matches();
+        int leftOperand;
+        int rightOperand;
+        String arabicRegex = "^([0-9]{1,2})\\s*([*+/-])\\s*([0-9]{1,2})$";
+        String romanRegex = "^(XI?|(?:IX|IV|V?I{0,3}))\\s*([*+/-])\\s*(XI?|(?:IX|IV|V?I{0,3}))$";
+        Pattern arabicPattern = Pattern.compile(arabicRegex);
+        Pattern romanPattern = Pattern.compile(romanRegex);
+        Matcher arabicMatcher = arabicPattern.matcher(s);
+        Matcher romanMatcher = romanPattern.matcher(s);
+        boolean isArabic = arabicMatcher.matches();
+        boolean isRoman = romanMatcher.matches();
         if (!(isArabic || isRoman))
-            throw new Exception("Incorrect expression format");
+            throw new Exception("Incorrect number(s) in the operands");
         if (isRoman) {
-            left_operand = Main.romanToArabic(roman_matcher.group(1));
-            right_operand = Main.romanToArabic(roman_matcher.group(3));
-            operator = roman_matcher.group(2);
+            leftOperand = Main.romanToArabic(romanMatcher.group(1));
+            rightOperand = Main.romanToArabic(romanMatcher.group(3));
+            operator = romanMatcher.group(2);
         }else {
-            left_operand = Integer.parseInt(arabic_matcher.group(1));
-            right_operand = Integer.parseInt(arabic_matcher.group(3));
-            operator = arabic_matcher.group(2);
+            leftOperand = Integer.parseInt(arabicMatcher.group(1));
+            rightOperand = Integer.parseInt(arabicMatcher.group(3));
+            operator = arabicMatcher.group(2);
         }
-        if (left_operand > 10 || right_operand > 10)
-            throw new Exception("Too big number in operands");
-        Map<String, Object> expression = new HashMap<String, Object>();
-        expression.put("left_operand", left_operand);
-        expression.put("right_operand", right_operand);
-        expression.put("operator", operator);
-        expression.put("isRoman", isRoman);
+        if (leftOperand > 10 || rightOperand > 10)
+            throw new Exception("Incorrect number(s) in the operands");
+	Expression expression = new Expression(leftOperand, rightOperand, operator, isRoman);
         return expression;
     }
     private static int romanToArabic(String roman){
@@ -94,34 +90,107 @@ class Main {
         result += numbers.get(symbols[symbols.length - 1]);
         return result;
     }
-    private static String arabicToRoman(int arabic_number) throws Exception {
+    private static String arabicToRoman(int arabicNumber) throws Exception {
         Map<Integer, String> numbers = new HashMap<>();
         numbers.put(1, "I");
-        numbers.put(4, "IV");
         numbers.put(5, "V");
-        numbers.put(9, "IX");
         numbers.put(10, "X");
+        numbers.put(50, "L");
+	numbers.put(100, "C");
         String result = "";
-        if (arabic_number > 10)
+        if (arabicNumber > 100)
             throw new Exception("Too big roman number in the result");
-        if (arabic_number <= 0)
+        if (arabicNumber <= 0)
             throw new Exception("Too small roman number in the result");
-        int temp_number = arabic_number;
-        while(temp_number > 0) {
-            if (temp_number == 10)
-                return numbers.get(10);
-            if (temp_number == 9)
-                return numbers.get(9);
-            if (temp_number == 4)
-                return numbers.get(4);
-            if (temp_number >= 5) {
+        int remainder = arabicNumber;
+        while(remainder > 0) {
+	    if (remainder == 100){
+		result += numbers.get(100);
+		remainder -= 100;
+		continue;
+	    }
+	    if (remainder - 100 >= -10){
+		result += "X" + numbers.get(100);
+		remainder -= 90;
+		continue;
+	    }	
+	    if (remainder >= 50){
+		result +=numbers.get(50);
+		remainder -= 50;
+		continue;
+	    }
+	    if (remainder - 50 >= -10){
+		result += "X" + numbers.get(50);
+		remainder -= 40;
+		continue;
+	    }
+            if (remainder >= 10){
+		result += numbers.get(10);
+		remainder -= 10;
+		continue;
+	    }
+	    if (remainder - 10 == -1){
+		result += "I" + numbers.get(10);
+		break;
+	    }	
+            if (remainder >= 5) {
                 result += numbers.get(5);
-                temp_number = temp_number - 5;
-            }else {
-                result += numbers.get(1);
-                temp_number = temp_number - 1;
+                remainder -= 5;
+		continue;
+	    }
+            if (remainder - 5 == -1){
+		result += "I" + numbers.get(5);	
+		break;
             }
+            result += numbers.get(1);
+            remainder -= 1;
         }
         return result;
     }
+}
+
+class Expression{
+        private int leftOperand;
+        private int rightOperand;
+        private String operator;       
+        private boolean isRoman;
+
+        public Expression(int leftOperand, int rightOperand, String operator, boolean isRoman){
+        	this.leftOperand = leftOperand;
+        	this.rightOperand = rightOperand;
+        	this.operator = operator;
+        	this.isRoman = isRoman;
+        }
+        
+        public int getLeftOperand(){
+        	return leftOperand;
+        }
+
+        public void setLeftOperand(int leftOperand){
+        	this.leftOperand = leftOperand;
+        }
+
+        public int getRightOperand(){
+        	return rightOperand;
+        }
+
+        public void setRightOperand(int rightOperand){
+        	this.rightOperand = rightOperand;
+        }
+
+        public String getOperator(){
+        	return operator;
+        }
+
+        public void setOperator(String operator){
+        	this.operator = operator;
+        }
+
+        public boolean getIsRoman(){
+        	return isRoman;
+        }
+
+        public void setIsRoman(boolean isRoman){
+        	this.isRoman = isRoman;
+        }
 }
